@@ -8,6 +8,7 @@ var Tictactoe = function() {
         'Click play to start',
         'Turn to play',
         'Won the game',
+        'Draw detected',
     ]
 
     // Initializing self.
@@ -44,37 +45,81 @@ var Tictactoe = function() {
      * self.clickedBox recieve the element clicked by the user and marks it with X or O depending the turn.
      * @param {element} element - used to determine what span will be marked.
      **/
-    var clickedBox = function(element) {
+    var clickedBox = function(element, grid) {
+        // Start the game if that is the first click
+        if (self.buttonLabel === 'Play') {
+            self.play();
+        }
         // Verify if a winner is defined to stop the game.
-        if (self.winner || self.game[element.id]) {
+        if (self.winner) {
             return false;
         }
-        // Marks the box clicked according the player's turn.
-        element.innerHTML = self.turn;
-        // Increase the self.game array with the boxes already clicked.
-        self.game[element.id] = self.turn;
-        // Switch the text element to refers the player's turn.
-        self.text = text[1];
-        // Switch player's turn.
-        if (self.turn == 'x') {
-            self.turn = 'o';
-        } else {
-            self.turn = 'x';
+        // Span has already been clicked
+        if (element) {
+            // If the clicked SPAN is already clicked
+            if (self.game[element.id]) {
+                return false;
+            } else {
+                // Marks the box clicked according the player's turn.
+                element.innerHTML = self.turn;
+                // Increase the self.game array with the boxes already clicked.
+                self.game[element.id] = self.turn;
+                // Switch the text element to refers the player's turn.
+                self.text = text[1];
+                // Switch player's turn.
+                if (self.turn == 'x') {
+                    self.turn = 'o';
+                } else {
+                    self.turn = 'x';
+                }
+            }
         }
+
         // Variable to check if some player won the game.
         var winner = checkMatching(1, 2, 3) || checkMatching(4, 5, 6) ||
             checkMatching(7, 8, 9) || checkMatching(1, 4, 7) ||
             checkMatching(2, 5, 8) || checkMatching(3, 6, 9) ||
             checkMatching(1, 5, 9) || checkMatching(3, 5, 7);
+
         if (winner) {
+            // Who is the winner
             self.turn = winner;
             // Switch the text element to refers the winner.
             self.text = text[2];
             // A new winner
             self.winner = true;
+        } else {
+            // No winner, so check for draw which means no empty blanks left
+            var result = grid.querySelectorAll('span:empty');
+            if (! result.length) {
+                // No ones-turn
+                self.turn = '';
+                // Draw detected
+                self.text = text[3];
+                return false;
+            }
         }
 
         return true;
+    }
+
+    /**
+     * Boot should play now
+     */
+    var bot = function(grid) {
+        // Define the pointerEvents to none, so the user cannot click while bot's turn.
+        grid.style.pointerEvents = 'none';
+        // Set a timeout to the bot's turn.
+        setTimeout(() => {
+            // Variable to store the spans not yet marked.
+            var result = grid.querySelectorAll('span:empty');
+            // Variable to select one of the not marked spans.
+            var randomBox = result[Math.floor(Math.random() * result.length)];
+            // Play in the random position
+            clickedBox(randomBox, grid);
+            // Make the pointerEvents clickable again.
+            grid.style.pointerEvents = '';
+        }, 800);
     }
 
     /**
@@ -92,25 +137,15 @@ var Tictactoe = function() {
             // Verify the tagName of the element.
             if (element.tagName == 'SPAN') {
                 // Call the clickedBox function.
-                if (clickedBox(element)) {
+                if (clickedBox(element, o)) {
                     // If self.bot == true, this will do the bot move.
                     if (self.bot) {
-                        // Define the pointerEvents to none, so the user cannot click while bot's turn.
-                        o.style.pointerEvents = 'none';
-                        // Set a timeout to the bot's turn.
-                        setTimeout(() => {
-                            // Variable to store the spans not yet marked.
-                            var result = o.querySelectorAll('span:empty');
-                            // Variable to select one of the not marked spans.
-                            var randomBox = result[Math.floor(Math.random() * result.length)];
-                            // Play in the random position
-                            clickedBox(randomBox);
-                            // Make the pointerEvents clickable again.
-                            o.style.pointerEvents = '';
-                        }, 500);
+                        // Play will bot with a little delay
+                        bot(o);
                     }
                 }
             } else if (element.tagName == 'BUTTON') {
+                // The user click in the play or restart button
                 self.play(o);
             }
         });
@@ -131,9 +166,11 @@ var Tictactoe = function() {
         self.text = text[1];
         // Get all the spans elements to remove the marks.
         var result = grid.querySelectorAll('span');
+        // Reset the all SPAN in the grid
         for (var i = 0; i < result.length; i++) {
             result[i].innerHTML = '';
         }
+        // Set the button label
         self.buttonLabel = 'Restart';
 
     }
